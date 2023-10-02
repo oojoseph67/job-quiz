@@ -1,106 +1,109 @@
-import { ConnectWallet } from "@thirdweb-dev/react";
-import styles from "../styles/Home.module.css";
-import Image from "next/image";
+import { useState } from "react";
+import {
+  useAddress,
+  useTokenBalance,
+  useConnectionStatus,
+  useContractRead,
+  useContractWrite,
+  useMetamask,
+  useContract,
+} from "@thirdweb-dev/react";
+import tokenAbi from "../blockchain/token.json";
+import toast from "react-hot-toast";
+import { ethers } from "ethers";
 
 export default function Home() {
+  const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS;
+
+  const [mintAmount, setMintAmount] = useState("");
+  console.log("🚀 ~ file: index.js:18 ~ Home ~ mintAmount:", mintAmount);
+
+  const address = useAddress();
+  const connectWithMetamask = useMetamask();
+  const { contract: tokenContract, isLoading: tokenContractIsLoading } =
+    useContract(tokenAddress, tokenAbi);
+  console.log("🚀 ~ file: index.js:19 ~ Home ~ tokenContract:", tokenContract);
+
+  const { data: tokenBalance } = useTokenBalance(tokenContract, address);
+  console.log("🚀 ~ file: index.js:22 ~ Home ~ tokenBalance:", tokenBalance);
+
+  const { mutateAsync: mint, isLoading: mintIsLoading } = useContractWrite(
+    tokenContract,
+    "mint"
+  );
+
+  const mintToken = async () => {
+    const notification = toast.loading(`Minting !!! ${tokenBalance?.symbol}`);
+    if (mintAmount === "") {
+      toast.error(`Please input an amount you want to mint`, {
+        id: notification,
+      });
+    } else {
+      if (tokenBalance?.displayValue > "100000000") {
+        toast.error(`You have enough token don't be greed 😐😒`, {
+          id: notification,
+        });
+      } else {
+        try {
+          const mintAmountEther = ethers.utils.parseEther(mintAmount);
+          const data = await mint({
+            args: [address, mintAmountEther],
+          });
+          setMintAmount("");
+          console.log("🚀 ~ file: index.js:47 ~ Home ~ data:", data);
+          toast.success(`Approval Successfully`, {
+            id: notification,
+          });
+        } catch (e) {
+          toast.error(`Whoops ${e.reason}`, {
+            id: notification,
+          });
+        }
+      }
+    }
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>
-            Welcome to{" "}
-            <span className={styles.gradientText0}>
-              <a
-                href="https://thirdweb.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                thirdweb.
-              </a>
-            </span>
-          </h1>
-
-          <p className={styles.description}>
-            Get started by configuring your desired network in{" "}
-            <code className={styles.code}>src/index.js</code>, then modify the{" "}
-            <code className={styles.code}>src/App.js</code> file!
-          </p>
-
-          <div className={styles.connect}>
-            <ConnectWallet
-              dropdownPosition={{
-                side: "bottom",
-                align: "center",
-              }}
-            />
+    <>
+      {!address ? (
+        <>
+          <div>
+            Please Connect your wallet to mint <b>Token(TKN</b>)
           </div>
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://portal.thirdweb.com/"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/portal-preview.png"
-              alt="Placeholder preview of starter"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText1}>Portal ➜</h2>
-              <p>
-                Guides, references, and resources that will help you build with
-                thirdweb.
-              </p>
-            </div>
-          </a>
-
-          <a
-            href="https://thirdweb.com/dashboard"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/dashboard-preview.png"
-              alt="Placeholder preview of starter"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText2}>Dashboard ➜</h2>
-              <p>
-                Deploy, configure, and manage your smart contracts from the
-                dashboard.
-              </p>
-            </div>
-          </a>
-
-          <a
-            href="https://thirdweb.com/templates"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/templates-preview.png"
-              alt="Placeholder preview of templates"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText3}>Templates ➜</h2>
-              <p>
-                Discover and clone template projects showcasing thirdweb
-                features.
-              </p>
-            </div>
-          </a>
-        </div>
-      </div>
-    </main>
+          <button onClick={connectWithMetamask}>Connect</button>
+        </>
+      ) : (
+        <>
+          {tokenContractIsLoading ? (
+            <>
+              <div>Loading !!!</div>
+            </>
+          ) : (
+            <>
+              <div>Token Balance</div>
+              <span>
+                {Number(tokenBalance?.displayValue).toLocaleString()}{" "}
+                {tokenBalance?.symbol}{" "}
+              </span>
+              <div>
+                {tokenBalance?.displayValue > "0"
+                  ? "Want some token?? Mint more"
+                  : "Get Started By Minting some token"}
+              </div>
+              <div>
+                <input
+                  disabled={mintIsLoading}
+                  value={mintAmount}
+                  onChange={(e) => setMintAmount(e.target.value)}
+                />
+                <button disabled={mintIsLoading} onClick={mintToken}>
+                  {mintIsLoading ? "Minting !!!" : "Mint"}
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
   );
 }
