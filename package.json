@@ -14,11 +14,14 @@
     "@thirdweb-dev/chains": "^0.1.53",
     "@thirdweb-dev/react": "^3",
     "@thirdweb-dev/sdk": "^3",
+    "autoprefixer": "^10.4.16",
     "ethers": "^5",
     "next": "^13",
+    "postcss": "^8.4.31",
     "react": "^18.2",
     "react-dom": "^18.2",
-    "react-hot-toast": "^2.4.1"
+    "react-hot-toast": "^2.4.1",
+    "tailwindcss": "^3.3.3"
   },
   "devDependencies": {
     "eslint": "8.11.0",

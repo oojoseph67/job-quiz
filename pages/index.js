@@ -2,11 +2,10 @@ import { useState } from "react";
 import {
   useAddress,
   useTokenBalance,
-  useConnectionStatus,
-  useContractRead,
   useContractWrite,
   useMetamask,
   useContract,
+  useDisconnect,
 } from "@thirdweb-dev/react";
 import tokenAbi from "../blockchain/token.json";
 import toast from "react-hot-toast";
@@ -20,11 +19,14 @@ export default function Home() {
 
   const address = useAddress();
   const connectWithMetamask = useMetamask();
+  const disconnect = useDisconnect();
+
   const { contract: tokenContract, isLoading: tokenContractIsLoading } =
     useContract(tokenAddress, tokenAbi);
   console.log("🚀 ~ file: index.js:19 ~ Home ~ tokenContract:", tokenContract);
 
-  const { data: tokenBalance } = useTokenBalance(tokenContract, address);
+  const { data: tokenBalance, isLoading: tokenBalanceIsLoading } =
+    useTokenBalance(tokenContract, address);
   console.log("🚀 ~ file: index.js:22 ~ Home ~ tokenBalance:", tokenBalance);
 
   const { mutateAsync: mint, isLoading: mintIsLoading } = useContractWrite(
@@ -64,46 +66,78 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       {!address ? (
-        <>
-          <div>
-            Please Connect your wallet to mint <b>Token(TKN</b>)
-          </div>
-          <button onClick={connectWithMetamask}>Connect</button>
-        </>
+        <div className="text-center">
+          <p className="text-2xl font-semibold mb-4 text-blue-600">
+            Please Connect your wallet to mint{" "}
+            <b className="text-blue-800">Token(TKN)</b>
+          </p>
+          <button
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 py-2 px-4 rounded-full"
+            onClick={connectWithMetamask}>
+            Connect
+          </button>
+        </div>
       ) : (
-        <>
+        <div className="text-center">
           {tokenContractIsLoading ? (
-            <>
-              <div>Loading !!!</div>
-            </>
+            <div className="text-xl font-semibold text-gray-600">
+              Loading !!!
+            </div>
           ) : (
             <>
-              <div>Token Balance</div>
-              <span>
-                {Number(tokenBalance?.displayValue).toLocaleString()}{" "}
-                {tokenBalance?.symbol}{" "}
+              <p className="text-2xl font-semibold mb-4 text-blue-600">
+                Your TKN Balance
+              </p>
+              <span className="text-3xl font-bold">
+                {tokenBalanceIsLoading ? (
+                  <>Loading!!!! Balance</>
+                ) : (
+                  <>
+                    {" "}
+                    {Number(tokenBalance?.displayValue).toLocaleString()}{" "}
+                    <span className="text-blue-800">
+                      {tokenBalance?.symbol}
+                    </span>
+                  </>
+                )}
               </span>
-              <div>
-                {tokenBalance?.displayValue > "0"
+              <p className="mt-4">
+                {tokenBalance?.displayValue === "0"
                   ? "Want some token?? Mint more"
                   : "Get Started By Minting some token"}
-              </div>
-              <div>
+              </p>
+              {/* <br /> */}
+              <div className="mt-6">
                 <input
+                  className="border border-gray-300 p-3 rounded"
+                  placeholder="Enter an amount 😉😏"
                   disabled={mintIsLoading}
                   value={mintAmount}
                   onChange={(e) => setMintAmount(e.target.value)}
                 />
-                <button disabled={mintIsLoading} onClick={mintToken}>
-                  {mintIsLoading ? "Minting !!!" : "Mint"}
+                <button
+                  className={`${
+                    mintIsLoading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600"
+                  } text-white font-semibold py-3 px-4 rounded-full ml-2`}
+                  disabled={mintIsLoading}
+                  onClick={mintToken}>
+                  {mintIsLoading ? "Minting..." : "Mint"}
                 </button>
               </div>
             </>
           )}
-        </>
+          {/* <br /> */}
+          <button
+            onClick={disconnect}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full mt-6">
+            Disconnect
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 }
