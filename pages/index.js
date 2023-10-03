@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useAddress,
   useTokenBalance,
@@ -34,6 +34,9 @@ export default function Home() {
     "mint"
   );
 
+  const formattedAddress =
+    address && address.slice(0, 6) + "..." + address.slice(-4);
+
   const mintToken = async () => {
     const notification = toast.loading(`Minting !!! ${tokenBalance?.symbol}`);
     if (mintAmount === "") {
@@ -41,37 +44,50 @@ export default function Home() {
         id: notification,
       });
     } else {
-      if (tokenBalance?.displayValue > "100000000") {
+      if (tokenBalance?.displayValue > "100000") {
         toast.error(`You have enough token don't be greed 😐😒`, {
           id: notification,
         });
       } else {
-        try {
-          const mintAmountEther = ethers.utils.parseEther(mintAmount);
-          const data = await mint({
-            args: [address, mintAmountEther],
-          });
-          setMintAmount("");
-          console.log("🚀 ~ file: index.js:47 ~ Home ~ data:", data);
-          toast.success(`Approval Successfully`, {
-            id: notification,
-          });
-        } catch (e) {
-          toast.error(`Whoops ${e.reason}`, {
-            id: notification,
-          });
+        const availableMintAmount = 100000 - tokenBalance?.displayValue;
+        if (mintAmount > availableMintAmount) {
+          toast.error(
+            `Input within your mint amount of ${availableMintAmount} 😐😒`,
+            {
+              id: notification,
+            }
+          );
+        } else {
+          try {
+            const mintAmountEther = ethers.utils.parseEther(mintAmount);
+            const data = await mint({
+              args: [mintAmountEther],
+            });
+            setMintAmount("");
+            console.log("🚀 ~ file: index.js:47 ~ Home ~ data:", data);
+            toast.success(`Approval Successfully`, {
+              id: notification,
+            });
+          } catch (e) {
+            setMintAmount("");
+            toast.error(`Whoops ${e.reason}`, {
+              id: notification,
+            });
+          }
         }
       }
     }
   };
+
+  useEffect(() => {}, [address, tokenContract, tokenBalance]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       {!address ? (
         <div className="text-center">
           <p className="text-2xl font-semibold mb-4 text-blue-600">
-            Please Connect your wallet to mint{" "}
-            <b className="text-blue-800">Token(TKN)</b>
+            Connect your wallet to mint{" "}
+            <b className="text-blue-800">MyToken(MTK)</b>
           </p>
           <button
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 py-2 px-4 rounded-full"
@@ -87,12 +103,15 @@ export default function Home() {
             </div>
           ) : (
             <>
+              <p className="text-xl font-semibold mb-3 text-blue-800">
+                {formattedAddress}
+              </p>
               <p className="text-2xl font-semibold mb-4 text-blue-600">
-                Your TKN Balance
+                Your MTK Balance
               </p>
               <span className="text-3xl font-bold">
                 {tokenBalanceIsLoading ? (
-                  <>Loading!!!! Balance</>
+                  <>Loading Balance !!!! </>
                 ) : (
                   <>
                     {" "}
